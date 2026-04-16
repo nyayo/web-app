@@ -16,6 +16,7 @@
   import Button from '$lib/forms/Button.svelte';
   import UploadFile from '$lib/forms/UploadFile.svelte';
   import SvelteSeo from 'svelte-seo';
+  import { createDefaultTheme, createDefaultVCard } from '$lib/defaults/data.js';
 
   let userId;
   $: if (browser) {
@@ -30,9 +31,9 @@
 
   export let data;
 
-  export let vCard = data.vCard.data;
+  export let vCard = data?.vCard?.data || createDefaultVCard();
 
-  export let theme = data.theme.data;
+  export let theme = data?.theme?.data || createDefaultTheme();
 
   let isLoading = false;
   const save = () => {
@@ -154,7 +155,7 @@
 
             <Heading border="true" size="h2" tag="h2">Images</Heading>
             <Heading size="h4" tag="h4">Upload avatar</Heading>
-            <UploadFile bind:file="{avatarPreview}" imageHeight="130" imageName="avatar"/>
+            <UploadFile bind:file="{avatarPreview}" imageHeight="130" imageName="avatar" targetUserId={vCard.userId}/>
         </div>
 
         <DisplayPreview {avatarPreview} {theme} {vCard}/>

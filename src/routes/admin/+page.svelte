@@ -14,12 +14,21 @@
   const user = JSON.parse(Cookies.get('user') || '{}').data;
   const userId = user?.userId;
   const themeId = user?.themeId;
+  const userName = user?.name || 'user';
 
   let profileUrl = `${PUBLIC_BASE_URL}/p/${userId}/t/${themeId}`;
 
   export let data;
 
-  const clicks = data.clicks.data;
+  const clicks = data?.clicks?.data || {
+    clickCountsByDate: {},
+    totalClicks: 0,
+    totalClicksByType: {
+      qr: 0,
+      nfc: 0,
+      web: 0,
+    },
+  };
 
   onMount(() => {
     svgString = new QRCode({
@@ -97,7 +106,7 @@
 
                     <div class="d-flex justify-content-between">
                         <button class="btn btn-action rounded-circle d-flex align-items-center justify-content-center"
-                                on:click={downloadSvgAsPng(svgString, `${user.name}-QR.png`)}>
+                                on:click={() => downloadSvgAsPng(svgString, `${userName}-QR.png`)}>
                             <div class="text-info">
                                 <DownloadIcon size="2.5x"/>
                             </div>

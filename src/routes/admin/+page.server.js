@@ -1,13 +1,28 @@
 import { redirect } from '@sveltejs/kit';
-import { PUBLIC_REST_API_URL } from '$env/static/public';
+import { buildRestApiUrl } from '$lib/server/rest-api-url.js';
+import { createDefaultClickStats } from '$lib/defaults/data.js';
+
+const parseCookieJSON = (cookieValue) => {
+  try {
+    return JSON.parse(cookieValue ?? '{}');
+  } catch {
+    return {};
+  }
+};
 
 export const load = async ({
   fetch,
   cookies,
   url,
 }) => {
-  const { token } = JSON.parse(cookies.get('access')).data;
-  const userId = url.searchParams.get('userId') || JSON.parse(cookies.get('user')).data.userId;
+  const accessCookie = parseCookieJSON(cookies.get('access'));
+  const userCookie = parseCookieJSON(cookies.get('user'));
+  const token = accessCookie?.data?.token;
+  const userId = url.searchParams.get('userId') || userCookie?.data?.userId;
+
+  if (!token || !userId) {
+    throw redirect(302, '/login');
+  }
 
   const clicks = async () => {
     const options = {
@@ -18,16 +33,25 @@ export const load = async ({
       },
     };
 
-    const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/users/${userId}/statistics/clicks`, options);
+    const response = await fetch(buildRestApiUrl(`/users/${userId}/statistics/clicks`), options);
 
-    if (response.status === 404) {
+    if ([400, 401, 403, 404].includes(response.status)) {
       throw redirect(302, '/login');
     }
 
-    return response.json();
+    if (!response.ok) {
+      return { data: createDefaultClickStats() };
+    }
+
+    const payload = await response.json();
+    if (!payload?.data) {
+      return { data: createDefaultClickStats() };
+    }
+
+    return payload;
   };
 
   return {
-    clicks: clicks(),
+    clicks: await clicks(),
   };
 };

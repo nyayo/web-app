@@ -13,6 +13,7 @@
   export let data;
 
   const themeId = JSON.parse(Cookies.get('user') || '{}').data?.themeId;
+  const themes = data?.themes?.data || [];
 
   let isLoading = false;
 
@@ -65,7 +66,13 @@
       limit,
       nextPage,
       prevPage
-    } = data.themes.pagination;
+    } = data?.themes?.pagination || {
+      page: 1,
+      totalPages: 1,
+      limit: 5,
+      nextPage: null,
+      prevPage: null,
+    };
 
     pagination = {
       page,
@@ -130,7 +137,7 @@
             </tr>
             </thead>
             <tbody class="table-group-divider">
-            {#each data.themes.data as theme}
+            {#each themes as theme}
                 <tr>
                     <td class="align-middle text-nowrap">{theme.name}</td>
                     <td class="d-flex justify-content-end">

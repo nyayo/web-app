@@ -1,4 +1,4 @@
-import { PUBLIC_REST_API_URL } from '$env/static/public';
+import { buildRestApiUrl } from '$lib/server/rest-api-url.js';
 
 export const load = async ({ url }) => {
   const token = url.searchParams.get('token');
@@ -32,7 +32,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/auth/reset`, options);
+      const response = await fetch(buildRestApiUrl('/auth/reset'), options);
 
       if (response.ok) {
         return { success: true };

@@ -1,12 +1,29 @@
 import { redirect } from '@sveltejs/kit';
-import { PUBLIC_REST_API_URL } from '$env/static/public';
+import { buildRestApiUrl } from '$lib/server/rest-api-url.js';
+import { createDefaultThemesResponse } from '$lib/defaults/data.js';
+
+const parseCookieJSON = (cookieValue) => {
+  try {
+    return JSON.parse(cookieValue ?? '{}');
+  } catch {
+    return {};
+  }
+};
+
+const getTokenOrRedirect = (cookies) => {
+  const token = parseCookieJSON(cookies.get('access'))?.data?.token;
+  if (!token) {
+    throw redirect(302, '/login');
+  }
+  return token;
+};
 
 export const load = async ({
   fetch,
   cookies,
   url,
 }) => {
-  const { token } = JSON.parse(cookies.get('access')).data;
+  const token = getTokenOrRedirect(cookies);
 
   const fetchThemes = async () => {
     const params = new URLSearchParams(url.search);
@@ -22,7 +39,7 @@ export const load = async ({
       },
     };
 
-    const apiUrl = new URL(`${PUBLIC_REST_API_URL}/api/v1/themes`);
+    const apiUrl = new URL(buildRestApiUrl('/themes'));
 
     if (page) {
       apiUrl.searchParams.append('page', page);
@@ -36,7 +53,7 @@ export const load = async ({
 
     const response = await fetch(apiUrl.toString(), options);
 
-    if (response.status === 404) {
+    if ([400, 401, 404].includes(response.status)) {
       throw redirect(302, '/login');
     }
 
@@ -44,11 +61,20 @@ export const load = async ({
       throw redirect(302, '/admin');
     }
 
-    return response.json();
+    if (!response.ok) {
+      return createDefaultThemesResponse();
+    }
+
+    const payload = await response.json();
+    if (!payload?.data || !Array.isArray(payload.data) || !payload?.pagination) {
+      return createDefaultThemesResponse();
+    }
+
+    return payload;
   };
 
   return {
-    themes: fetchThemes(),
+    themes: await fetchThemes(),
   };
 };
 
@@ -58,7 +84,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const token = getTokenOrRedirect(cookies);
     const formData = await request.formData();
     const data = Object.fromEntries(Array.from(formData.entries()));
 
@@ -72,7 +98,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/themes`, options);
+      const response = await fetch(buildRestApiUrl('/themes'), options);
 
       if (response.ok) {
         return { success: true };
@@ -88,7 +114,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const token = getTokenOrRedirect(cookies);
     const formData = await request.formData();
 
     const options = {
@@ -103,7 +129,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/themes/${formData.get('themeId')}`, options);
+      const response = await fetch(buildRestApiUrl(`/themes/${formData.get('themeId')}`), options);
 
       if (response.status === 400) {
         const data = await response.json();
@@ -128,7 +154,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const token = getTokenOrRedirect(cookies);
     const formData = await request.formData();
 
     const options = {
@@ -143,7 +169,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/themes`, options);
+      const response = await fetch(buildRestApiUrl('/themes'), options);
 
       if (response.ok) {
         return { success: true };

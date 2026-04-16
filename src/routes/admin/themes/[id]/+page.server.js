@@ -1,5 +1,32 @@
 import { redirect } from '@sveltejs/kit';
-import { PUBLIC_REST_API_URL } from '$env/static/public';
+import { buildRestApiUrl } from '$lib/server/rest-api-url.js';
+import { createDefaultTheme, createDefaultVCard } from '$lib/defaults/data.js';
+
+const parseCookieJSON = (cookieValue) => {
+  try {
+    return JSON.parse(cookieValue ?? '{}');
+  } catch {
+    return {};
+  }
+};
+
+const getSessionOrRedirect = (cookies) => {
+  const access = parseCookieJSON(cookies.get('access'));
+  const user = parseCookieJSON(cookies.get('user'));
+  const token = access?.data?.token;
+  const role = user?.data?.role;
+  const userId = user?.data?.userId;
+
+  if (!token || !user?.data) {
+    throw redirect(302, '/login');
+  }
+
+  return {
+    token,
+    role,
+    userId,
+  };
+};
 
 export const load = async ({
   fetch,
@@ -8,9 +35,9 @@ export const load = async ({
 }) => {
   const {
     role,
+    token,
     userId,
-  } = JSON.parse(cookies.get('user')).data;
-  const { token } = JSON.parse(cookies.get('access')).data;
+  } = getSessionOrRedirect(cookies);
 
   const themeId = params.id;
 
@@ -27,8 +54,26 @@ export const load = async ({
       },
     };
 
-    const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/users/${userId}/vcards`, options);
-    return response.json();
+    const response = await fetch(buildRestApiUrl(`/users/${userId}/vcards`), options);
+
+    if ([400, 401].includes(response.status)) {
+      throw redirect(302, '/login');
+    }
+
+    if (response.status === 403) {
+      throw redirect(302, '/admin');
+    }
+
+    if (!response.ok) {
+      return { data: createDefaultVCard(userId) };
+    }
+
+    const payload = await response.json();
+    if (!payload?.data) {
+      return { data: createDefaultVCard(userId) };
+    }
+
+    return payload;
   };
 
   const fetchTheme = async () => {
@@ -40,14 +85,36 @@ export const load = async ({
       },
     };
 
-    const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/themes/${themeId}`, options);
+    const response = await fetch(buildRestApiUrl(`/themes/${themeId}`), options);
 
-    return response.json();
+    if ([400, 401].includes(response.status)) {
+      throw redirect(302, '/login');
+    }
+
+    if (response.status === 403) {
+      throw redirect(302, '/admin');
+    }
+
+    if (!response.ok) {
+      return { data: createDefaultTheme() };
+    }
+
+    const payload = await response.json();
+    if (!payload?.data) {
+      return { data: createDefaultTheme() };
+    }
+
+    return payload;
   };
 
+  const [vCards, theme] = await Promise.all([
+    fetchVcard(),
+    fetchTheme(),
+  ]);
+
   return {
-    vCards: fetchVcard(),
-    theme: fetchTheme(),
+    vCards,
+    theme,
   };
 };
 
@@ -58,7 +125,7 @@ export const actions = {
     cookies,
     params,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const { token } = getSessionOrRedirect(cookies);
     const themeId = params.id;
     const formData = await request.formData();
 
@@ -116,7 +183,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/themes/${themeId}`, options);
+      const response = await fetch(buildRestApiUrl(`/themes/${themeId}`), options);
 
       if (response.ok) {
         return { success: true };
@@ -132,9 +199,10 @@ export const actions = {
     fetch,
     request,
     cookies,
+    params,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
-    const { themeId } = JSON.parse(cookies.get('user')).data;
+    const { token } = getSessionOrRedirect(cookies);
+    const themeId = params.id;
     const formData = await request.formData();
 
     const options = {
@@ -146,7 +214,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/themes/${themeId}/images`, options);
+      const response = await fetch(buildRestApiUrl(`/themes/${themeId}/images`), options);
 
       if (response.ok) {
         return { success: true };
@@ -162,7 +230,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const { token } = getSessionOrRedirect(cookies);
     const formData = await request.formData();
 
     const options = {
@@ -177,7 +245,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/themes`, options);
+      const response = await fetch(buildRestApiUrl('/themes'), options);
 
       if (response.ok) {
         return { success: true };

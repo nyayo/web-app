@@ -2,7 +2,7 @@
 
 # Adjust NODE_VERSION as desired
 ARG NODE_VERSION=20.3.0
-FROM node:${NODE_VERSION}-slim AS base
+FROM node:20.19.0-slim AS base
 
 LABEL fly_launch_runtime="NodeJS"
 
@@ -17,25 +17,28 @@ FROM base AS build
 
 # Install node modules
 COPY --link package.json package-lock.json ./
-RUN npm install --production=false
+RUN npm install --production=false --legacy-peer-deps
 
 # Copy application code
 COPY --link . .
+
+ARG PUBLIC_BASE_URL
+ENV PUBLIC_BASE_URL=$PUBLIC_BASE_URL
+
+ARG PUBLIC_REST_API_URL
+ENV PUBLIC_REST_API_URL=$PUBLIC_REST_API_URL
 
 # Build application
 RUN npm run build
 
 # Remove development dependencies
-RUN npm prune --production
+RUN npm prune --omit=dev --legacy-peer-deps
 
 # Final stage for app image
 FROM base
 
 # Copy built application
 COPY --from=build /app /app
-
-# Rename .env.production to .env
-RUN mv .env.production .env
 
 # Start the server by default, this can be overwritten at runtime
 CMD [ "npm", "run", "start" ]

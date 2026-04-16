@@ -59,10 +59,12 @@
   const handleLogout = () => {
     resetPopoverState();
     Cookies.remove('user');
+    Cookies.remove('access');
     goto('/login', { replaceState: true });
     displaySuccess('Successfully logged out!');
   };
-  let role = JSON.parse(Cookies.get('user')).data.role;
+  const userCookie = JSON.parse(Cookies.get('user') || '{}');
+  let role = userCookie?.data?.role || 'user';
 </script>
 
 <div

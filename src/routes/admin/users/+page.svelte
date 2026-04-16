@@ -25,7 +25,11 @@
 
   export let data;
 
-  const userId = JSON.parse(Cookies.get('user') || '{}').data?.userId;
+  const cookieUser = JSON.parse(Cookies.get('user') || '{}').data || {};
+  const userId = cookieUser.userId;
+  const currentThemeId = cookieUser.themeId;
+  const themes = data?.themes?.data || [];
+  const users = data?.users?.data || [];
 
   let isLoading = false;
 
@@ -92,7 +96,13 @@
       limit,
       nextPage,
       prevPage,
-    } = data.users.pagination;
+    } = data?.users?.pagination || {
+      page: 1,
+      totalPages: 1,
+      limit: 5,
+      nextPage: null,
+      prevPage: null,
+    };
 
     pagination = {
       page,
@@ -139,7 +149,7 @@
                         <div class="form-floating mb-3"> <!-- todo: move to component? -->
                             <select aria-label="Select theme" class="form-select" id="floatingSelectTheme"
                                     name="themeId">
-                                {#each data.themes.data as theme}
+                                {#each themes as theme}
                                     <option value="{theme.themeId}">{theme.name}</option>
                                 {/each}
                             </select>
@@ -216,7 +226,7 @@
             </tr>
             </thead>
             <tbody class="table-group-divider">
-            {#each data.users.data as user}
+            {#each users as user}
                 <tr>
                     <td class="align-middle text-nowrap">{user.name}</td>
                     <td class="align-middle text-nowrap">{user.email}</td>
@@ -225,7 +235,7 @@
                         <a
                                 class="btn btn-action rounded-circle d-flex align-items-center justify-content-center"
                                 role="button"
-                                href="/p/{user.userId}/t/{user.themeId}"
+                                href="/p/{user.userId}/t/{user.themeId || currentThemeId}"
                                 target="_blank"
                         >
                             <div class="d-flex text-info">
@@ -235,7 +245,7 @@
 
                         <Nfc
                                 className="btn btn-action rounded-circle d-flex align-items-center justify-content-center"
-                                profileUrl="{`${PUBLIC_BASE_URL}/p/${user.userId}/t/${user.themeId}?source=nfc`}"
+                                profileUrl="{`${PUBLIC_BASE_URL}/p/${user.userId}/t/${user.themeId || currentThemeId}?source=nfc`}"
                         >
                             <div class="d-flex text-success">
                                 <CreditCardIcon size="2x"/>
@@ -251,7 +261,7 @@
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
-                                    <a role="button" href="/admin/vcard?userId={user.userId}&themeId={user.themeId}"
+                                    <a role="button" href="/admin/vcard?userId={user.userId}&themeId={user.themeId || currentThemeId}"
                                        class="dropdown-item"
                                        type="button">
                                         <Edit2Icon size="1x" class="me-2"/>
@@ -358,7 +368,7 @@
                                                 <select aria-label="Select theme" class="form-select"
                                                         id="floatingEditTheme"
                                                         name="themeId">
-                                                    {#each data.themes.data as theme}
+                                                    {#each themes as theme}
                                                         <option value="{theme.themeId}"
                                                                 selected={theme.themeId === user.themeId}>{theme.name}</option>
                                                     {/each}

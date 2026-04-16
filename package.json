@@ -33,8 +33,10 @@
     "@playwright/test": "^1.50.0",
     "@popperjs/core": "^2.11.8",
     "@rodneylab/svelte-social-icons": "^0.0.31",
+    "@sveltejs/adapter-node": "^5.5.4",
     "@sveltejs/adapter-vercel": "^5.7.1",
-    "@sveltejs/kit": "^2.20.8",
+    "@sveltejs/kit": "2.20.8",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@types/cookie": "^1.0.0",
     "@zerodevx/svelte-toast": "^0.9.6",
     "bootstrap": "^5.3.8",
@@ -58,7 +60,7 @@
     "svelte-preprocess": "^6.0.3",
     "svelte-seo": "^1.6.1",
     "typescript": "^5.7.2",
-    "vite": "^7.1.7",
+    "vite": "^6.4.2",
     "vitest": "^3.2.3"
   }
 }

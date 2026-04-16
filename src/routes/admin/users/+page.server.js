@@ -1,12 +1,29 @@
 import { redirect } from '@sveltejs/kit';
-import { PUBLIC_REST_API_URL } from '$env/static/public';
+import { buildRestApiUrl } from '$lib/server/rest-api-url.js';
+import { createDefaultThemesResponse, createDefaultUsersResponse } from '$lib/defaults/data.js';
+
+const parseCookieJSON = (cookieValue) => {
+  try {
+    return JSON.parse(cookieValue ?? '{}');
+  } catch {
+    return {};
+  }
+};
+
+const getTokenOrRedirect = (cookies) => {
+  const token = parseCookieJSON(cookies.get('access'))?.data?.token;
+  if (!token) {
+    throw redirect(302, '/login');
+  }
+  return token;
+};
 
 export const load = async ({
   fetch,
   cookies,
   url,
 }) => {
-  const { token } = JSON.parse(cookies.get('access')).data;
+  const token = getTokenOrRedirect(cookies);
 
   const fetchThemes = async () => {
     const options = {
@@ -17,9 +34,26 @@ export const load = async ({
       },
     };
 
-    const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/themes`, options);
+    const response = await fetch(buildRestApiUrl('/themes'), options);
 
-    return response.json();
+    if ([400, 401, 404].includes(response.status)) {
+      throw redirect(302, '/login');
+    }
+
+    if (response.status === 403) {
+      throw redirect(302, '/admin');
+    }
+
+    if (!response.ok) {
+      return createDefaultThemesResponse();
+    }
+
+    const payload = await response.json();
+    if (!payload?.data || !Array.isArray(payload.data)) {
+      return createDefaultThemesResponse();
+    }
+
+    return payload;
   };
 
   const fetchUsers = async () => {
@@ -36,7 +70,7 @@ export const load = async ({
       },
     };
 
-    const apiUrl = new URL(`${PUBLIC_REST_API_URL}/api/v1/users`);
+    const apiUrl = new URL(buildRestApiUrl('/users'));
 
     if (page) {
       apiUrl.searchParams.append('page', page);
@@ -50,7 +84,7 @@ export const load = async ({
 
     const response = await fetch(apiUrl.toString(), options);
 
-    if (response.status === 404) {
+    if ([400, 401, 404].includes(response.status)) {
       throw redirect(302, '/login');
     }
 
@@ -58,12 +92,26 @@ export const load = async ({
       throw redirect(302, '/admin');
     }
 
-    return response.json();
+    if (!response.ok) {
+      return createDefaultUsersResponse();
+    }
+
+    const payload = await response.json();
+    if (!payload?.data || !Array.isArray(payload.data) || !payload?.pagination) {
+      return createDefaultUsersResponse();
+    }
+
+    return payload;
   };
 
+  const [themes, users] = await Promise.all([
+    fetchThemes(),
+    fetchUsers(),
+  ]);
+
   return {
-    themes: fetchThemes(),
-    users: fetchUsers(),
+    themes,
+    users,
   };
 };
 
@@ -72,7 +120,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const token = getTokenOrRedirect(cookies);
     const formData = await request.formData();
     const data = Object.fromEntries(Array.from(formData.entries()));
 
@@ -86,7 +134,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/users`, options);
+      const response = await fetch(buildRestApiUrl('/users'), options);
 
       if (response.ok) {
         return { success: true };
@@ -101,7 +149,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const token = getTokenOrRedirect(cookies);
     const formData = await request.formData();
     const options = {
       method: 'POST',
@@ -115,7 +163,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/auth/recover`, options);
+      const response = await fetch(buildRestApiUrl('/auth/recover'), options);
       if (response.ok) {
         return { success: true };
       }
@@ -129,7 +177,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const token = getTokenOrRedirect(cookies);
     const formData = await request.formData();
 
     const options = {
@@ -144,7 +192,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/users/${formData.get('userId')}`, options);
+      const response = await fetch(buildRestApiUrl(`/users/${formData.get('userId')}`), options);
 
       if (response.ok) {
         return { success: true };
@@ -160,7 +208,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const token = getTokenOrRedirect(cookies);
     const formData = await request.formData();
 
     const options = {
@@ -178,18 +226,19 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/users/${formData.get('userId')}`, options);
-
-      // Update the cookie.
-      await cookies.set('user', JSON.stringify(await response.json()), {
-        path: '/',
-        maxAge: 3600 * 60 * 60 * 24, // 1 day
-        secure: true,
-        sameSite: 'strict',
-        httpOnly: false,
-      });
+      const response = await fetch(buildRestApiUrl(`/users/${formData.get('userId')}`), options);
 
       if (response.ok) {
+        const payload = await response.json();
+        if (payload?.data) {
+          await cookies.set('user', JSON.stringify(payload), {
+            path: '/',
+            maxAge: 3600 * 60 * 60 * 24, // 1 day
+            secure: false,
+            sameSite: 'lax',
+            httpOnly: false,
+          });
+        }
         return { success: true };
       }
       return { success: false };
@@ -202,7 +251,7 @@ export const actions = {
     request,
     cookies,
   }) => {
-    const { token } = JSON.parse(cookies.get('access')).data;
+    const token = getTokenOrRedirect(cookies);
     const formData = await request.formData();
 
     const options = {
@@ -221,7 +270,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/auth/signup`, options);
+      const response = await fetch(buildRestApiUrl('/auth/signup'), options);
 
       if (response.ok) {
         return { success: true };

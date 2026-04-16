@@ -19,8 +19,10 @@
     document.documentElement.setAttribute('data-bs-theme', theme);
 
     let cookieObject = JSON.parse(Cookies.get('user') ?? '{}');
-    cookieObject.data.theme = theme;
-    Cookies.set('user', JSON.stringify(cookieObject));
+    if (cookieObject?.data) {
+      cookieObject.data.theme = theme;
+      Cookies.set('user', JSON.stringify(cookieObject));
+    }
   };
 </script>
 

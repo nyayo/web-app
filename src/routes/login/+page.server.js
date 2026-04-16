@@ -1,4 +1,4 @@
-import { PUBLIC_REST_API_URL } from '$env/static/public';
+import { buildRestApiUrl } from '$lib/server/rest-api-url.js';
 import { displayWarning } from '../../js/toast.js';
 
 export const actions = {
@@ -21,7 +21,7 @@ export const actions = {
     };
 
     try {
-      const response = await fetch(`${PUBLIC_REST_API_URL}/api/v1/auth/login`, options);
+      const response = await fetch(buildRestApiUrl('/auth/login'), options);
 
       if (response.ok) {
         const user = await response.json();
@@ -33,8 +33,8 @@ export const actions = {
         }), {
           path: '/',
           maxAge: 3600 * 60 * 60 * 24, // 1 day
-          secure: true,
-          sameSite: 'strict',
+          secure: false,
+          sameSite: 'lax',
           httpOnly: true,
         });
 
@@ -42,8 +42,8 @@ export const actions = {
         await cookies.set('user', JSON.stringify(user), {
           path: '/',
           maxAge: 3600 * 60 * 60 * 24, // 1 day
-          secure: true,
-          sameSite: 'strict',
+          secure: false,
+          sameSite: 'lax',
           httpOnly: false,
         });
 

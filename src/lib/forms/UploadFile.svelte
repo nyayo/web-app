@@ -13,15 +13,28 @@
 
   export let imageName;
 
+  export let targetUserId = '';
+
   let isLoading = false;
 
   const onFileSelected = (e) => {
     selectedFile = e.target.files[0];
+    if (!selectedFile) {
+      return;
+    }
+
     let reader = new FileReader();
     reader.readAsDataURL(selectedFile);
     reader.onload = (e) => {
       file = e.target.result;
     };
+  };
+
+  const onSubmit = (event) => {
+    if (!fileInput?.files?.length) {
+      event.preventDefault();
+      displayWarning('Please select an image first.');
+    }
   };
 
   const save = () => {
@@ -43,7 +56,7 @@
   };
 </script>
 
-<form action="?/uploadLogo" method="POST" use:enhance={save}>
+<form action="?/uploadLogo" enctype="multipart/form-data" method="POST" on:submit={onSubmit} use:enhance={save}>
     <div class="mb-3">
         <input
                 accept=".jpg, .jpeg, .png"
@@ -58,6 +71,9 @@
 
     <input hidden name="imageHeight" value="{imageHeight}"/>
     <input hidden name="imageName" value="{imageName}"/>
+    {#if targetUserId}
+        <input hidden name="userId" value="{targetUserId}"/>
+    {/if}
 
     <Button {isLoading}>Save image</Button>
 </form>

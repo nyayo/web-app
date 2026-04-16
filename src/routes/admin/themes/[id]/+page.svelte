@@ -11,6 +11,7 @@
   import Button from '$lib/forms/Button.svelte';
   import AlignSelect from '$lib/forms/AlignSelect.svelte';
   import SvelteSeo from 'svelte-seo';
+  import { createDefaultTheme, createDefaultVCard } from '$lib/defaults/data.js';
 
   export let data;
 
@@ -34,9 +35,9 @@
     };
   };
 
-  const vCard = data.vCards.data;
+  const vCard = data?.vCards?.data || createDefaultVCard();
 
-  export let theme = data.theme.data;
+  export let theme = data?.theme?.data || createDefaultTheme();
 
   let logoPreview;
 </script>

@@ -2,12 +2,13 @@
   import BusinessCard from '$lib/vCard/BusinessCard.svelte';
   import ProductionView from '$lib/vCard/views/ProductionView.svelte';
   import SvelteSeo from 'svelte-seo';
+  import { createDefaultTheme, createDefaultVCard } from '$lib/defaults/data.js';
 
   export let data;
 
-  const vCard = data.vCard.data;
+  const vCard = data?.vCard?.data || createDefaultVCard();
 
-  const theme = data.theme.data;
+  const theme = data?.theme?.data || createDefaultTheme();
 
   const title = `${vCard.person.firstName} ${vCard.person.lastName}`;
   const description = `${vCard.person.firstName} ${vCard.person.lastName}\'s personal business card.`;
@@ -15,21 +16,6 @@
 
 <SvelteSeo
         description="{description}"
-        openGraph={{
-    title: title,
-    description: description,
-    image: vCard?.avatar?.format.webp || '',
-    type: "website",
-    images: [
-      {
-        url: vCard?.avatar?.format.webp || '',
-        width: vCard?.avatar?.size?.width || '',
-        height: vCard?.avatar?.size?.height || '',
-        alt: `${vCard?.person?.firstName || ''} ${vCard?.person?.lastName || ''}`,
-      },
-    ],
-    site_name: `${vCard?.person?.firstName || ''} ${vCard?.person?.lastName || ''}`,
-  }}
         title="{title}"
 />
 
