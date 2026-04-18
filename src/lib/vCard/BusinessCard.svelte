@@ -114,7 +114,7 @@
   $: displayWeb = theme?.display?.web !== false;
   $: displayAddress = theme?.display?.address !== false;
   $: displayMap = theme?.display?.map !== false;
-  $: displayVCardButton = theme?.display?.vCardBtn !== false;
+  $: displayVCardButton = true;
 
   $: fullName = [vCard?.person?.firstName, vCard?.person?.middleName, vCard?.person?.lastName]
     .map(toText)
