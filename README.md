@@ -84,6 +84,19 @@ docker compose up -d --build
 
 The root stack uses local MongoDB by default. To keep using an external database, set `DB_CONNECTION` in the root `.env`.
 
+##### VPS / reverse-proxy note (important for login forms)
+
+If you see `{"message":"Cross-site POST form submissions are forbidden"}`, your runtime `ORIGIN` does not match the public URL.
+
+Set `WEB_APP_ORIGIN` to the exact browser URL (including `https://`), for example:
+
+```bash
+WEB_APP_ORIGIN=https://cards.example.com
+PUBLIC_BASE_URL=https://cards.example.com
+```
+
+If you run behind Nginx/Traefik/Caddy, make sure proxy headers are forwarded (especially `Host` and `X-Forwarded-Proto`).
+
 ### Roadmap
 
 See the [open issues](https://github.com/CardMesh/web-app/issues) for a complete list of proposed

@@ -13,7 +13,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=5173
-      - ORIGIN=http://localhost:5173
+      - ORIGIN=${WEB_APP_ORIGIN:-http://localhost:5173}
       - REST_API_URL=http://rest-api-app-1:8080/api/v1
     networks:
       - cardmesh
