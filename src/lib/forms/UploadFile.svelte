@@ -45,10 +45,12 @@
     }) => {
       await update({ reset: false });
 
-      if (result.data.success) {
+      const resultData = result?.data || {};
+
+      if (resultData.success) {
         displaySuccess('Successfully uploaded!');
       } else {
-        displayWarning('Something went wrong. Please try again.');
+        displayWarning(resultData.message || 'Something went wrong. Please try again.');
       }
 
       isLoading = false;

@@ -5,7 +5,7 @@
   export let vCard;
   export let className = '';
   export let backgroundColor = '#182d30';
-  export let color = '#ffffff';
+  export let color = '#182d30';
 
   let link = '';
 
@@ -40,7 +40,7 @@
       return;
     }
 
-    window.location.href = link;
+    window.location.assign(link);
   };
 </script>
 
@@ -56,9 +56,9 @@
 
 <style>
   .vcard-cta {
-    border: 0;
+    border: 1px solid color-mix(in srgb, var(--vcard-btn-color) 30%, transparent);
     border-radius: 0.9rem;
-    padding: 0.85rem 1rem;
+    padding: 0.8rem 1rem;
     width: 100%;
     font-weight: 700;
     line-height: 1;
@@ -66,20 +66,15 @@
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--vcard-btn-bg) 90%, #fff 10%),
-      var(--vcard-btn-bg)
-    );
+    background: transparent;
     color: var(--vcard-btn-color);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
-    transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
   }
 
   .vcard-cta:hover:enabled {
     transform: translateY(-1px);
-    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.28);
-    filter: saturate(1.04);
+    border-color: color-mix(in srgb, var(--vcard-btn-color) 55%, transparent);
+    background: color-mix(in srgb, var(--vcard-btn-bg) 8%, transparent);
   }
 
   .vcard-cta:active:enabled {
@@ -89,6 +84,5 @@
   .vcard-cta:disabled {
     cursor: not-allowed;
     opacity: 0.7;
-    box-shadow: none;
   }
 </style>

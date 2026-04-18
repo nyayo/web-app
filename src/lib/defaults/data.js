@@ -138,4 +138,14 @@ export const createDefaultVCard = (userId = '') => ({
       webp: '',
     },
   },
+  cover: {
+    size: {
+      height: 0,
+      width: 0,
+    },
+    format: {
+      png: '',
+      webp: '',
+    },
+  },
 });

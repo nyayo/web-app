@@ -1,4 +1,4 @@
-import { redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { buildRestApiUrl } from '$lib/server/rest-api-url.js';
 import { createDefaultTheme, createDefaultVCard } from '$lib/defaults/data.js';
 
@@ -23,6 +23,35 @@ const getSessionOrRedirect = (cookies) => {
     token,
     user: user.data,
   };
+};
+
+const normalizeOptionalUrl = (value) => {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    return '';
+  }
+
+  return normalized.includes('://') ? normalized : `https://${normalized}`;
+};
+
+const parseErrorMessage = async (response, fallbackMessage) => {
+  try {
+    const payload = await response.json();
+    if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
+      const [firstError] = payload.errors;
+      if (typeof firstError === 'string') {
+        return firstError;
+      }
+
+      if (firstError?.msg) {
+        return firstError.msg;
+      }
+    }
+  } catch {
+    // Keep fallback message when response body is not JSON.
+  }
+
+  return fallbackMessage;
 };
 
 export const load = async ({
@@ -139,7 +168,7 @@ export const actions = {
           extension: formData.get('extension'),
         },
         email: formData.get('email'),
-        web: formData.get('web'),
+        web: normalizeOptionalUrl(formData.get('web')),
         file: {
           url: formData.get('fileUrl'),
           name: formData.get('fileName'),
@@ -159,12 +188,12 @@ export const actions = {
         },
       },
       socialMedia: {
-        twitter: formData.get('twitter'),
-        linkedin: formData.get('linkedin'),
-        facebook: formData.get('facebook'),
-        instagram: formData.get('instagram'),
-        pinterest: formData.get('pinterest'),
-        github: formData.get('github'),
+        twitter: normalizeOptionalUrl(formData.get('twitter')),
+        linkedin: normalizeOptionalUrl(formData.get('linkedin')),
+        facebook: normalizeOptionalUrl(formData.get('facebook')),
+        instagram: normalizeOptionalUrl(formData.get('instagram')),
+        pinterest: normalizeOptionalUrl(formData.get('pinterest')),
+        github: normalizeOptionalUrl(formData.get('github')),
       },
     };
 
@@ -185,9 +214,17 @@ export const actions = {
       if (response.ok) {
         return { success: true };
       }
-      return { success: false };
+
+      const message = await parseErrorMessage(response, 'Unable to save changes.');
+      return fail(response.status || 400, {
+        success: false,
+        message,
+      });
     } catch (err) {
-      return { success: false };
+      return fail(500, {
+        success: false,
+        message: 'Error while saving changes.',
+      });
     }
   },
 
@@ -220,9 +257,17 @@ export const actions = {
       if (response.ok) {
         return { success: true };
       }
-      return { success: false };
+
+      const message = await parseErrorMessage(response, 'Unable to upload image.');
+      return fail(response.status || 400, {
+        success: false,
+        message,
+      });
     } catch (err) {
-      return { success: false };
+      return fail(500, {
+        success: false,
+        message: 'Error while uploading image.',
+      });
     }
   },
 };

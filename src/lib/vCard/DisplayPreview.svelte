@@ -5,10 +5,11 @@
   export let theme;
   export let logoPreview;
   export let avatarPreview;
+  export let coverPreview;
 </script>
 
 <div class="preview-sticky">
-    <Preview {avatarPreview} {logoPreview} {theme} {vCard}/>
+    <Preview {avatarPreview} {coverPreview} {logoPreview} {theme} {vCard}/>
 </div>
 
 <style>

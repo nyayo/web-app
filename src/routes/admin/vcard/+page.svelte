@@ -44,10 +44,12 @@
     }) => {
       await update({ reset: false });
 
-      if (result.data.success) {
+      const resultData = result?.data || {};
+
+      if (resultData.success) {
         displaySuccess('Successfully saved!');
       } else {
-        displayWarning('Something went wrong. Please try again.');
+        displayWarning(resultData.message || 'Something went wrong. Please try again.');
       }
 
       isLoading = false;
@@ -55,6 +57,7 @@
   };
 
   let avatarPreview;
+  let coverPreview;
 </script>
 
 <SvelteSeo
@@ -154,12 +157,14 @@
             </form>
 
             <Heading border="true" size="h2" tag="h2">Images</Heading>
+            <Heading size="h4" tag="h4">Upload cover photo</Heading>
+            <UploadFile bind:file="{coverPreview}" imageHeight="280" imageName="cover" targetUserId={vCard.userId}/>
             <Heading size="h4" tag="h4">Upload avatar</Heading>
             <UploadFile bind:file="{avatarPreview}" imageHeight="130" imageName="avatar" targetUserId={vCard.userId}/>
         </div>
 
         <div class="col-xl-4 d-none d-xl-block">
-            <DisplayPreview {avatarPreview} {theme} {vCard}/>
+            <DisplayPreview {avatarPreview} {coverPreview} {theme} {vCard}/>
         </div>
     </div>
 </AdminMain>

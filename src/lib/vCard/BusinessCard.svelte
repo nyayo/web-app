@@ -34,10 +34,8 @@
     background: '#dee1dd',
     contactIconBackground: '#182d30',
     contactIconFont: '#ffffff',
-    socialIconBackground: '#ffffff',
-    socialIconFont: '#182d30',
     buttonBackground: '#182d30',
-    buttonFont: '#ffffff',
+    buttonFont: '#182d30',
   };
 
   const toText = (value) => (typeof value === 'string' ? value.trim() : '');
@@ -88,6 +86,7 @@
   export let theme;
   export let logoPreview;
   export let avatarPreview;
+  export let coverPreview;
 
   $: displayMode = view === 'preview' ? 'fixed-bottom-preview' : 'fixed-bottom-prod';
 
@@ -99,11 +98,6 @@
     DEFAULT_COLORS.contactIconBackground
   );
   $: contactIconColor = normalizeColor(theme?.color?.contactIcons?.font, DEFAULT_COLORS.contactIconFont);
-  $: socialIconBackground = normalizeColor(
-    theme?.color?.socialIcons?.background,
-    DEFAULT_COLORS.socialIconBackground
-  );
-  $: socialIconColor = normalizeColor(theme?.color?.socialIcons?.font, DEFAULT_COLORS.socialIconFont);
   $: buttonBackground = normalizeColor(theme?.color?.vCardBtn?.background, DEFAULT_COLORS.buttonBackground);
   $: buttonColor = normalizeColor(theme?.color?.vCardBtn?.font, DEFAULT_COLORS.buttonFont);
 
@@ -141,6 +135,8 @@
 
   $: avatarSource =
     avatarPreview || (vCard?.avatar?.format?.webp ? `data:image/webp;base64,${vCard.avatar.format.webp}` : '');
+  $: coverSource =
+    coverPreview || (vCard?.cover?.format?.webp ? `data:image/webp;base64,${vCard.cover.format.webp}` : '');
 
   $: phoneNumber = toText(vCard?.contact?.phone?.number);
   $: countryCode = toText(vCard?.contact?.phone?.countryCode);
@@ -202,22 +198,29 @@
         "
 >
     <div class="card-stack">
-        {#if displayLogo && logoSource}
-            <div class="logo-row" style="justify-content: {ALIGN_TO_FLEX[logoAlign]};">
-                <img
-                        alt={company || cardName}
-                        class="brand-logo"
-                        height={logoHeight}
-                        src={logoSource}
-                        style="max-height: {logoHeight}px"
-                        width={logoWidth}
-                />
+        <section
+                class="cover-shell {coverSource ? 'with-image' : 'with-gradient'}"
+                style={coverSource ? `--cover-image: url('${coverSource}');` : ''}
+        >
+            <div class="cover-overlay">
+                {#if displayLogo && logoSource}
+                    <div class="logo-panel" style="justify-content: {ALIGN_TO_FLEX[logoAlign]};">
+                        <img
+                                alt={company || cardName}
+                                class="brand-logo"
+                                height={logoHeight}
+                                src={logoSource}
+                                style="max-height: {logoHeight}px"
+                            width={logoWidth}
+                        />
+                    </div>
+                {/if}
             </div>
-        {/if}
+        </section>
 
-        <section class="hero-panel">
+        <section class="hero-panel {avatarSource ? 'with-overlap' : ''}">
             {#if avatarSource}
-                <div class="avatar-row" style="justify-content: {ALIGN_TO_FLEX[avatarAlign]}">
+                <div class="avatar-row avatar-overlap" style="justify-content: {ALIGN_TO_FLEX[avatarAlign]}">
                     <img alt={cardName} class="avatar" height="136" src={avatarSource} width="136"/>
                 </div>
             {/if}
@@ -293,10 +296,9 @@
                     {#each socialLinks as social}
                         <li>
                             <SocialIconLink
-                                    backgroundColor={socialIconBackground}
-                                    fontColor={socialIconColor}
                                     link={social.link}
                                     network={social.network}
+                                    size={34}
                             />
                         </li>
                     {/each}
@@ -382,7 +384,7 @@
             </SectionCard>
         {/if}
 
-        {#if displayMap && hasCoordinates}
+        {#if displayMap}
             <SectionCard
                     borderColor="rgba(24, 45, 48, 0.14)"
                     mutedColor={secondaryColor}
@@ -390,9 +392,21 @@
                     textColor={primaryColor}
                     title="Map"
             >
-                <div class="map-shell">
-                    <Map {latitude} {longitude}/>
-                </div>
+                {#if hasCoordinates}
+                    <div class="map-shell">
+                        <Map {latitude} {longitude}/>
+                    </div>
+                {:else}
+                    <div class="map-fallback">
+                        <MapPinIcon size="1.1x"/>
+                        <div>
+                            <p>Map coordinates are not available yet.</p>
+                            {#if addressLineOne || addressLineTwo || country}
+                                <small>{[addressLineOne, addressLineTwo, country].filter(Boolean).join(' • ')}</small>
+                            {/if}
+                        </div>
+                    </div>
+                {/if}
             </SectionCard>
         {/if}
     </div>
@@ -426,16 +440,60 @@
     padding-bottom: 1.5rem;
   }
 
-  .logo-row {
+  .cover-shell {
+    position: relative;
+    min-height: 188px;
+    border-radius: 1.15rem;
+    overflow: hidden;
+    border: 1px solid rgba(24, 45, 48, 0.16);
+  }
+
+  .cover-shell.with-gradient {
+    background:
+      radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.45), transparent 38%),
+      linear-gradient(130deg, #224b54, #3f737c 45%, #6ea0a8);
+  }
+
+  .cover-shell.with-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: var(--cover-image);
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.02);
+  }
+
+  .cover-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.55));
+  }
+
+  .cover-overlay {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    min-height: inherit;
+    padding: 0.9rem;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .logo-panel {
     display: flex;
     width: 100%;
-    margin-bottom: 0.25rem;
   }
 
   .brand-logo {
     object-fit: contain;
     width: auto;
-    max-width: 100%;
+    max-width: min(72%, 240px);
+    padding: 0.4rem 0.55rem;
+    border-radius: 0.7rem;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.25);
   }
 
   .hero-panel {
@@ -446,9 +504,19 @@
     backdrop-filter: blur(6px);
   }
 
+  .hero-panel.with-overlap {
+    margin-top: 0.2rem;
+  }
+
   .avatar-row {
     display: flex;
+  }
+
+  .avatar-overlap {
+    margin-top: -5.2rem;
     margin-bottom: 0.75rem;
+    position: relative;
+    z-index: 2;
   }
 
   .avatar {
@@ -460,25 +528,26 @@
 
   .identity-block h1 {
     margin: 0;
-    font-size: 1.55rem;
+    font-size: 1.4rem;
     font-weight: 800;
+    color: var(--primary-color);
     letter-spacing: -0.025em;
   }
 
   .role-line {
-    margin: 0.35rem 0 0;
+    margin: 0.32rem 0 0;
     color: var(--secondary-color);
     font-weight: 600;
   }
 
   .meta-line {
-    margin: 0.28rem 0 0;
+    margin: 0.25rem 0 0;
     color: var(--secondary-color);
-    font-size: 0.88rem;
+    font-size: 0.84rem;
   }
 
   .bio {
-    margin: 0.85rem 0 0;
+    margin: 0.1rem 0 0;
     font-size: 0.95rem;
     line-height: 1.45;
   }
@@ -492,11 +561,11 @@
 
   .social-icons {
     list-style: none;
-    margin: 0.95rem 0 0;
+    margin: 1.05rem 0 0;
     padding: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.42rem;
+    gap: 0.55rem;
   }
 
   .map-shell {
@@ -505,12 +574,30 @@
     border: 1px solid rgba(24, 45, 48, 0.12);
   }
 
+  .map-fallback {
+    min-height: 160px;
+    border: 1px dashed rgba(24, 45, 48, 0.24);
+    border-radius: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.9rem;
+    background: rgba(255, 255, 255, 0.75);
+  }
+
+  .map-fallback p {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .map-fallback small {
+    color: var(--secondary-color);
+  }
+
   .vcard-action {
     z-index: 1000;
-    border-top: 1px solid rgba(24, 45, 48, 0.12);
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(8px);
-    padding: 0.55rem;
+    background: transparent;
+    padding: 0.45rem 0.55rem 0.55rem;
   }
 
   .fixed-bottom-preview {
@@ -527,7 +614,11 @@
     }
 
     .card-stack {
-      padding-bottom: 4.3rem;
+      padding-bottom: 4.2rem;
+    }
+
+    .cover-shell {
+      min-height: 168px;
     }
   }
 </style>

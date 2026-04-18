@@ -18,21 +18,50 @@
     github: FaBrandsGithub,
   };
 
+  const NETWORK_STYLE = {
+    twitter: {
+      fg: '#ffffff',
+      bg: '#111111',
+    },
+    linkedin: {
+      fg: '#ffffff',
+      bg: '#0A66C2',
+    },
+    facebook: {
+      fg: '#ffffff',
+      bg: '#1877F2',
+    },
+    instagram: {
+      fg: '#ffffff',
+      bg: 'radial-gradient(circle at 30% 105%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%)',
+    },
+    pinterest: {
+      fg: '#ffffff',
+      bg: '#E60023',
+    },
+    github: {
+      fg: '#ffffff',
+      bg: '#181717',
+    },
+  };
+
   export let link;
   export let network;
-  export let size = 22;
+  export let size = 32;
   export let fontColor = '';
   export let backgroundColor = '';
 
   $: icon = ICON_MAP[network];
-  $: iconForeground = fontColor.length > 0 ? fontColor : '#1f2937';
-  $: iconBackground = backgroundColor.length > 0 ? backgroundColor : '#ffffff';
+  $: styleToken = NETWORK_STYLE[network] || { fg: '#ffffff', bg: '#1f2937' };
 </script>
 
 {#if link && icon}
     <a aria-label={network} class="social-link" href={link} rel="noopener noreferrer" target="_blank">
-        <span class="social-icon" style="--icon-color: {iconForeground}; --icon-bg: {iconBackground}; --icon-size: {size}px;">
-            <Icon size={`${Math.max(size - 8, 12)}px`} src={icon}/>
+        <span
+                class="social-icon"
+                style="--icon-color: {styleToken.fg}; --icon-bg: {styleToken.bg}; --icon-size: {size}px;"
+        >
+            <Icon size={`${Math.max(size - 12, 14)}px`} src={icon}/>
         </span>
     </a>
 {/if}
@@ -46,19 +75,18 @@
   .social-icon {
     width: var(--icon-size);
     height: var(--icon-size);
-    border-radius: 0.65rem;
-    border: 1px solid rgba(24, 45, 48, 0.16);
+    border-radius: 0.78rem;
     color: var(--icon-color);
     background: var(--icon-bg);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 9px 20px rgba(15, 23, 42, 0.22);
     transition: transform 120ms ease, box-shadow 120ms ease;
   }
 
   .social-link:hover .social-icon {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 26px rgba(15, 23, 42, 0.28);
   }
 </style>
