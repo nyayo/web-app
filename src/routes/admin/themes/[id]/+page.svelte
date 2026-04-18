@@ -49,8 +49,8 @@
 
 <AdminMain>
     <Heading border="true" size="h2" tag="h1">Edit theme</Heading>
-    <div class="row">
-        <div class="col-lg-8">
+    <div class="row g-4">
+        <div class="col-12 col-xl-8">
             <form action="?/save" method="POST" use:enhance={save}>
                 <Heading size="h4" tag="h4">Colors</Heading>
                 <ColorInput
@@ -198,6 +198,8 @@
             <Heading size="h4" tag="h4">Upload logo</Heading>
             <UploadFile bind:file={logoPreview} imageHeight="140" imageName="logo"/>
         </div>
+        <div class="col-xl-4 d-none d-xl-block">
+            <DisplayPreview {logoPreview} {theme} {vCard}/>
+        </div>
     </div>
-    <DisplayPreview {logoPreview} {theme} {vCard}/>
 </AdminMain>

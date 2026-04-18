@@ -6,352 +6,528 @@
     MapPinIcon,
     MessageSquareIcon,
     PhoneIcon,
-    UserPlusIcon
+    UserPlusIcon,
   } from 'svelte-feather-icons';
-  import Divider from '$lib/layout/Divider.svelte';
+  import { onMount } from 'svelte';
   import VCardButton from '$lib/vCard/VCard.svelte';
   import Map from '$lib/maps/Map.svelte';
   import SocialIconLink from '$lib/forms/SocialIconLink.svelte';
-  import IconLink from '$lib/layout/IconLink.svelte';
+  import SectionCard from '$lib/vCard/components/SectionCard.svelte';
+  import ActionPill from '$lib/vCard/components/ActionPill.svelte';
+  import ContactListItem from '$lib/vCard/components/ContactListItem.svelte';
 
-  import { onMount } from 'svelte';
+  const ALIGN_TO_FLEX = {
+    start: 'flex-start',
+    center: 'center',
+    end: 'flex-end',
+  };
 
-  let addContactText = '';
+  const ALIGN_TO_TEXT = {
+    start: 'left',
+    center: 'center',
+    end: 'right',
+  };
+
+  const DEFAULT_COLORS = {
+    primary: '#182d30',
+    secondary: '#2f575d',
+    background: '#dee1dd',
+    contactIconBackground: '#182d30',
+    contactIconFont: '#ffffff',
+    socialIconBackground: '#ffffff',
+    socialIconFont: '#182d30',
+    buttonBackground: '#182d30',
+    buttonFont: '#ffffff',
+  };
+
+  const toText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+  const normalizeColor = (value, fallback) => {
+    const color = toText(value);
+    return color.length > 0 ? color : fallback;
+  };
+
+  const normalizeAlign = (value, fallback = 'start') => {
+    const align = toText(value);
+    return ALIGN_TO_FLEX[align] ? align : fallback;
+  };
+
+  const normalizeExternalLink = (value) => {
+    const link = toText(value);
+    if (!link.length) {
+      return '';
+    }
+
+    return link.includes('://') ? link : `https://${link}`;
+  };
+
+  const parseCoordinate = (value) => {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) && value !== 0 ? value : null;
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) && parsed !== 0 ? parsed : null;
+    }
+
+    return null;
+  };
+
+  let addContactText = 'Add to contacts';
 
   onMount(async () => {
-    const translations = await import('../../js/translations.js');
-    addContactText = translations.translations[translations.browserLanguage];
+    const translationModule = await import('../../js/translations.js');
+    addContactText =
+      translationModule.translations[translationModule.browserLanguage] ||
+      translationModule.translations.en;
   });
 
   export let view = 'preview';
-
   export let vCard;
-
   export let theme;
-
   export let logoPreview;
-
   export let avatarPreview;
 
-  let displayMode = view === 'preview' ? 'fixed-bottom-preview' : 'fixed-bottom-prod';
+  $: displayMode = view === 'preview' ? 'fixed-bottom-preview' : 'fixed-bottom-prod';
 
-  let telLink;
+  $: primaryColor = normalizeColor(theme?.color?.font?.primary, DEFAULT_COLORS.primary);
+  $: secondaryColor = normalizeColor(theme?.color?.font?.secondary, DEFAULT_COLORS.secondary);
+  $: backgroundColor = normalizeColor(theme?.color?.background, DEFAULT_COLORS.background);
+  $: contactIconBackground = normalizeColor(
+    theme?.color?.contactIcons?.background,
+    DEFAULT_COLORS.contactIconBackground
+  );
+  $: contactIconColor = normalizeColor(theme?.color?.contactIcons?.font, DEFAULT_COLORS.contactIconFont);
+  $: socialIconBackground = normalizeColor(
+    theme?.color?.socialIcons?.background,
+    DEFAULT_COLORS.socialIconBackground
+  );
+  $: socialIconColor = normalizeColor(theme?.color?.socialIcons?.font, DEFAULT_COLORS.socialIconFont);
+  $: buttonBackground = normalizeColor(theme?.color?.vCardBtn?.background, DEFAULT_COLORS.buttonBackground);
+  $: buttonColor = normalizeColor(theme?.color?.vCardBtn?.font, DEFAULT_COLORS.buttonFont);
 
-  $: telLink = `${
-    vCard.contact.phone.countryCode ? `+${vCard.contact.phone.countryCode}` : ''
-  }${vCard.contact.phone.number}${
-    vCard.contact.phone.extension ? `,${vCard.contact.phone.extension}` : ''
-  }`;
+  $: logoAlign = normalizeAlign(theme?.align?.logo, 'start');
+  $: avatarAlign = normalizeAlign(theme?.align?.avatar, 'center');
+  $: headingAlign = normalizeAlign(theme?.align?.heading, 'center');
+  $: bioAlign = normalizeAlign(theme?.align?.bio, 'center');
+  $: socialAlign = normalizeAlign(theme?.align?.socialIcons, 'start');
 
-  let formattedNumber;
-  $: formattedNumber = `${
-    vCard.contact.phone.countryCode ? `(+${vCard.contact.phone.countryCode})` : ''
-  } ${vCard.contact.phone.number}`;
+  $: displayLogo = theme?.display?.logo !== false;
+  $: displayPhone = theme?.display?.phone !== false;
+  $: displaySms = theme?.display?.sms !== false;
+  $: displayEmail = theme?.display?.email !== false;
+  $: displayWeb = theme?.display?.web !== false;
+  $: displayAddress = theme?.display?.address !== false;
+  $: displayMap = theme?.display?.map !== false;
+  $: displayVCardButton = theme?.display?.vCardBtn !== false;
 
-  const address = [
-    vCard.location.street,
-    vCard.location.postalCode,
-    vCard.location.city,
-    vCard.location.country
-  ];
+  $: fullName = [vCard?.person?.firstName, vCard?.person?.middleName, vCard?.person?.lastName]
+    .map(toText)
+    .filter(Boolean)
+    .join(' ');
+  $: cardName = fullName || 'Virtual Card';
 
-  const formattedAddress = address
-    .join(' ')
-    .replace(/[^\p{L}\p{N}\s]/gu, '')
-    .replace(/\s/g, '+');
+  $: role = toText(vCard?.professional?.role);
+  $: company = toText(vCard?.professional?.company);
+  $: pronouns = toText(vCard?.person?.pronouns);
+  $: bio = toText(vCard?.professional?.bio);
+  $: bioHtml = bio.replace(/(\r\n|\r|\n)/g, '<br>');
 
-  let addressLink;
-  $: addressLink = `https://www.google.com/maps/place/${formattedAddress}`;
+  $: logoSource =
+    logoPreview || (theme?.logo?.format?.webp ? `data:image/webp;base64,${theme.logo.format.webp}` : '');
+  $: logoHeight = Number(theme?.logo?.size?.height) > 0 ? Number(theme.logo.size.height) : 32;
+  $: logoWidth = Number(theme?.logo?.size?.width) > 0 ? Number(theme.logo.size.width) : undefined;
 
-  let latitude;
-  $: latitude = vCard.location.coordinates.latitude;
+  $: avatarSource =
+    avatarPreview || (vCard?.avatar?.format?.webp ? `data:image/webp;base64,${vCard.avatar.format.webp}` : '');
 
-  let longitude;
-  $: longitude = vCard.location.coordinates.longitude;
+  $: phoneNumber = toText(vCard?.contact?.phone?.number);
+  $: countryCode = toText(vCard?.contact?.phone?.countryCode);
+  $: extension = toText(vCard?.contact?.phone?.extension);
+  $: hasPhone = phoneNumber.length > 0;
+  $: telLink = hasPhone
+    ? `${countryCode ? `+${countryCode}` : ''}${phoneNumber}${extension ? `,${extension}` : ''}`
+    : '';
+  $: formattedNumber = hasPhone
+    ? `${countryCode ? `(+${countryCode}) ` : ''}${phoneNumber}`.trim()
+    : '';
+  $: smsLink = hasPhone ? `sms:${countryCode ? `+${countryCode}` : ''}${phoneNumber}` : '';
 
-  const generateFullName = (first, middle, last) => `${first ? first + ' ' : ''}${middle ? middle + ' ' : ''}${last}`;
+  $: email = toText(vCard?.contact?.email);
+  $: website = toText(vCard?.contact?.web);
+  $: websiteLink = normalizeExternalLink(website);
+  $: fileName = toText(vCard?.contact?.file?.name);
+  $: fileUrl = normalizeExternalLink(vCard?.contact?.file?.url);
 
-  $: fullName = generateFullName(vCard.person.firstName, vCard.person.middleName, vCard.person.lastName);
+  $: street = toText(vCard?.location?.street);
+  $: storey = toText(vCard?.location?.storey);
+  $: city = toText(vCard?.location?.city);
+  $: state = toText(vCard?.location?.state);
+  $: postalCode = toText(vCard?.location?.postalCode);
+  $: country = toText(vCard?.location?.country);
+  $: timeZone = toText(vCard?.location?.timeZone);
+
+  $: hasAddress = [street, city, state, postalCode, country].some(Boolean);
+  $: addressLineOne = [street, storey].filter(Boolean).join(', ');
+  $: addressLineTwo = [postalCode, city, state].filter(Boolean).join(' ');
+  $: mapsQuery = encodeURIComponent([street, postalCode, city, state, country].filter(Boolean).join(' '));
+  $: addressLink = mapsQuery.length > 0 ? `https://www.google.com/maps/place/${mapsQuery}` : '';
+
+  $: latitude = parseCoordinate(vCard?.location?.coordinates?.latitude);
+  $: longitude = parseCoordinate(vCard?.location?.coordinates?.longitude);
+  $: hasCoordinates = latitude !== null && longitude !== null;
+
+  $: socialLinks = [
+    { network: 'twitter', link: normalizeExternalLink(vCard?.socialMedia?.twitter) },
+    { network: 'linkedin', link: normalizeExternalLink(vCard?.socialMedia?.linkedin) },
+    { network: 'facebook', link: normalizeExternalLink(vCard?.socialMedia?.facebook) },
+    { network: 'instagram', link: normalizeExternalLink(vCard?.socialMedia?.instagram) },
+    { network: 'pinterest', link: normalizeExternalLink(vCard?.socialMedia?.pinterest) },
+    { network: 'github', link: normalizeExternalLink(vCard?.socialMedia?.github) },
+  ].filter(({ link }) => link.length > 0);
+
+  $: showQuickActions =
+    (displayPhone && hasPhone) || (displaySms && hasPhone) || (displayEmail && email.length > 0) || (displayWeb && websiteLink.length > 0);
 </script>
 
-<div style="background-color: {theme.color.background}">
-    <div class="container">
-        <div class="d-flex"></div>
-
-        {#if theme.display.logo}
-            {#if theme?.logo?.format?.webp || logoPreview}
-                <div class="d-flex justify-content-{theme.align.logo}">
-                    <img
-                            alt={vCard.professional.company}
-                            class="position-relative mt-2"
-                            height="{theme?.logo?.size?.height ?? 20}"
-                            width="{theme?.logo?.size?.width}"
-                            src="{logoPreview ? logoPreview : `data:image/webp;base64,${theme.logo.format.webp}`}"
-                            style="max-height: {theme?.logo?.size?.height ?? 20}px"
-                    />
-                </div>
-            {/if}
-        {/if}
-
-        <Divider/>
-
-        {#if vCard?.avatar?.format?.webp || avatarPreview}
-            <div class="d-flex justify-content-{theme.align.avatar} mb-2">
-                <div class="d-flex justify-content-center align-items-center">
-                    <img
-                            alt="{fullName}"
-                            class="rounded-circle object-fit-cover"
-                            height="130"
-                            width="130"
-                            src="{avatarPreview ? avatarPreview : `data:image/webp;base64,${vCard.avatar.format.webp}`}"
-                    />
-                </div>
-            </div>
-        {/if}
-
-        <div class="d-flex justify-content-{theme.align.heading}">
-            <h1 class="h3 pt-1"
-                style="color: {theme.color.font.primary}">{fullName}</h1>
-        </div>
-        <div class="text-{theme.align.bio}" style="color: {theme.color.font.secondary}">
-            <small><em>{vCard.person.pronouns}</em></small>
-            <p><em>{vCard.professional.role}</em></p>
-            <p>{@html vCard.professional.bio.replace(/(\r\n|\r|\n)/g, '<br>')}</p>
-        </div>
-
-        <ul class="social-icons d-flex justify-content-{theme.align.socialIcons}">
-            <li>
-                <SocialIconLink backgroundColor="{theme.color.socialIcons.background}"
-                                fontColor="{theme.color.socialIcons.font}" link={vCard.socialMedia.twitter}
-                                network="twitter"/>
-            </li>
-            <li>
-                <SocialIconLink backgroundColor="{theme.color.socialIcons.background}"
-                                fontColor="{theme.color.socialIcons.font}" link={vCard.socialMedia.linkedin}
-                                network="linkedin"/>
-            </li>
-            <li>
-                <SocialIconLink backgroundColor="{theme.color.socialIcons.background}"
-                                fontColor="{theme.color.socialIcons.font}" link={vCard.socialMedia.facebook}
-                                network="facebook"/>
-            </li>
-            <li>
-                <SocialIconLink backgroundColor="{theme.color.socialIcons.background}"
-                                fontColor="{theme.color.socialIcons.font}"
-                                link={vCard.socialMedia.instagram}
-                                network="instagram"/>
-            </li>
-            <li>
-                <SocialIconLink backgroundColor="{theme.color.socialIcons.background}"
-                                fontColor="{theme.color.socialIcons.font}"
-                                link={vCard.socialMedia.pinterest}
-                                network="pinterest"/>
-            </li>
-            <li>
-                <SocialIconLink backgroundColor="{theme.color.socialIcons.background}"
-                                fontColor="{theme.color.socialIcons.font}" link={vCard.socialMedia.github}
-                                network="github"/>
-            </li>
-        </ul>
-
-
-        <Divider/>
-
-        <ul class="list-unstyled m-0" style="color: {theme.color.font.secondary}">
-            {#if vCard.contact.phone.number.length !== 0}
-                {#if theme.display.phone || theme.display.sms}
-                    <li class="d-flex align-middle pb-3">
-                        {#if theme.display.phone}
-                            <IconLink
-                                    href="tel:{telLink}"
-                                    ariaLabel="Call {vCard.contact.phone.number}"
-                                    backgroundColor="{theme.color.contactIcons.background}"
-                                    fontColor="{theme.color.contactIcons.font}"
-                            >
-                                <PhoneIcon size="1.2x"/>
-                            </IconLink>
-                        {/if}
-
-                        {#if theme.display.sms}
-                            <IconLink
-                                    href="sms:+{vCard.contact.phone.countryCode}{vCard.contact.phone.number}"
-                                    ariaLabel="Send SMS to {vCard.contact.phone.number}"
-                                    backgroundColor="{theme.color.contactIcons.background}"
-                                    fontColor="{theme.color.contactIcons.font}"
-                            >
-                                <MessageSquareIcon size="1.2x"/>
-                            </IconLink>
-                        {/if}
-
-                        <div class="d-flex flex-column my-auto">
-                            <a href="tel:{telLink}">{formattedNumber}</a>
-                        </div>
-                    </li>
-                {/if}
-            {/if}
-
-            {#if theme.display.email && vCard.contact.email.length !== 0}
-                <li class="d-flex align-middle pb-3">
-                    <IconLink
-                            href="mailto:{vCard.contact.email}"
-                            ariaLabel="Email {vCard.contact.email}"
-                            backgroundColor="{theme.color.contactIcons.background}"
-                            fontColor="{theme.color.contactIcons.font}"
-                    >
-                        <MailIcon size="1.2x"/>
-                    </IconLink>
-
-                    <div class="d-flex flex-column my-auto">
-                        <a href="mailto:{vCard.contact.email}">{vCard.contact.email}</a>
-                    </div>
-                </li>
-            {/if}
-
-            {#if theme.display.web && vCard.contact.web.length !== 0}
-                <li class="d-flex align-middle pb-3">
-                    <IconLink
-                            href="{vCard.contact.web.includes('://') ? vCard.contact.web : `https://${vCard.contact.web}`}"
-                            ariaLabel="Visit {vCard.contact.web}"
-                            backgroundColor="{theme.color.contactIcons.background}"
-                            fontColor="{theme.color.contactIcons.font}"
-                            target="_blank"
-                    >
-                        <GlobeIcon size="1.2x"/>
-                    </IconLink>
-
-                    <div class="d-flex flex-column my-auto">
-                        <a href="{vCard.contact.web.includes('://') ? vCard.contact.web : `https://${vCard.contact.web}`}"
-                           target="_blank">{vCard.contact.web}</a>
-                    </div>
-                </li>
-            {/if}
-
-            {#if vCard.contact.file.name && vCard.contact.file.url}
-                <li class="d-flex align-middle pb-3">
-                    <IconLink
-                            href="{vCard.contact.file.url}"
-                            ariaLabel="{vCard.contact.file.name}"
-                            backgroundColor="{theme.color.contactIcons.background}"
-                            fontColor="{theme.color.contactIcons.font}"
-                            target="_blank"
-                    >
-                        <FileIcon size="1.2x"/>
-                    </IconLink>
-
-                    <div class="d-flex flex-column my-auto">
-                        <a href="{vCard.contact.file.url.includes('://') ? vCard.contact.file.url : `https://${vCard.contact.file.url}`}"
-                           target="_blank">{vCard.contact.file.name}</a>
-                    </div>
-                </li>
-            {/if}
-
-            {#if theme.display.address}
-                {#if vCard.location.street.length !== 0 || vCard.location.postalCode.length !== 0 || vCard.location.city.length !== 0 || vCard.location.state.length !== 0}
-                    <li class="d-flex align-middle pb-3">
-                        <IconLink
-                                href="{addressLink}"
-                                ariaLabel="View location on Google Maps"
-                                backgroundColor="{theme.color.contactIcons.background}"
-                                fontColor="{theme.color.contactIcons.font}"
-                                target="_blank"
-                        >
-                            <MapPinIcon size="1.2x"/>
-                        </IconLink>
-
-                        <a href="{addressLink}" target="_blank">
-                            <div class="d-flex flex-column my-auto">
-                                {vCard.location.street}{vCard.location.storey
-                              ? ', ' + vCard.location.storey
-                              : ''}
-                                <span>{vCard.location.postalCode} {vCard.location.city}{vCard.location.state ? `, ${vCard.location.state}` : ''}</span>
-                                <span>{vCard.location.country}</span>
-                            </div>
-                        </a>
-                    </li>
-                {/if}
-            {/if}
-        </ul>
-
-        {#if theme.display.map && latitude.length !== 0 && longitude.length !== 0}
-            <Divider/>
-
-            <div class="card overflow-hidden">
-                <Map
-                        bind:latitude={latitude}
-                        bind:longitude={longitude}
+<article
+        class="business-card"
+        style="
+          --primary-color: {primaryColor};
+          --secondary-color: {secondaryColor};
+          --background-color: {backgroundColor};
+          --contact-icon-background: {contactIconBackground};
+          --contact-icon-color: {contactIconColor};
+        "
+>
+    <div class="card-stack">
+        {#if displayLogo && logoSource}
+            <div class="logo-row" style="justify-content: {ALIGN_TO_FLEX[logoAlign]};">
+                <img
+                        alt={company || cardName}
+                        class="brand-logo"
+                        height={logoHeight}
+                        src={logoSource}
+                        style="max-height: {logoHeight}px"
+                        width={logoWidth}
                 />
             </div>
         {/if}
+
+        <section class="hero-panel">
+            {#if avatarSource}
+                <div class="avatar-row" style="justify-content: {ALIGN_TO_FLEX[avatarAlign]}">
+                    <img alt={cardName} class="avatar" height="136" src={avatarSource} width="136"/>
+                </div>
+            {/if}
+
+            <div class="identity-block" style="text-align: {ALIGN_TO_TEXT[headingAlign]}">
+                <h1>{cardName}</h1>
+                {#if role || company}
+                    <p class="role-line">{[role, company].filter(Boolean).join(' • ')}</p>
+                {/if}
+                {#if pronouns}
+                    <p class="meta-line">{pronouns}</p>
+                {/if}
+            </div>
+
+            {#if bio}
+                <p class="bio" style="text-align: {ALIGN_TO_TEXT[bioAlign]}; color: var(--secondary-color)">
+                    {@html bioHtml}
+                </p>
+            {/if}
+
+            {#if showQuickActions}
+                <div class="quick-actions">
+                    {#if displayPhone && hasPhone}
+                        <ActionPill
+                                ariaLabel={`Call ${formattedNumber}`}
+                                href={`tel:${telLink}`}
+                                iconBackground={contactIconBackground}
+                                iconColor={contactIconColor}
+                                label="Call"
+                        >
+                            <PhoneIcon size="0.95x"/>
+                        </ActionPill>
+                    {/if}
+                    {#if displaySms && hasPhone}
+                        <ActionPill
+                                ariaLabel={`Send message to ${formattedNumber}`}
+                                href={smsLink}
+                                iconBackground={contactIconBackground}
+                                iconColor={contactIconColor}
+                                label="Message"
+                        >
+                            <MessageSquareIcon size="0.95x"/>
+                        </ActionPill>
+                    {/if}
+                    {#if displayEmail && email}
+                        <ActionPill
+                                ariaLabel={`Email ${email}`}
+                                href={`mailto:${email}`}
+                                iconBackground={contactIconBackground}
+                                iconColor={contactIconColor}
+                                label="Email"
+                        >
+                            <MailIcon size="0.95x"/>
+                        </ActionPill>
+                    {/if}
+                    {#if displayWeb && websiteLink}
+                        <ActionPill
+                                ariaLabel={`Visit ${website}`}
+                                href={websiteLink}
+                                iconBackground={contactIconBackground}
+                                iconColor={contactIconColor}
+                                label="Website"
+                                target="_blank"
+                        >
+                            <GlobeIcon size="0.95x"/>
+                        </ActionPill>
+                    {/if}
+                </div>
+            {/if}
+
+            {#if socialLinks.length > 0}
+                <ul class="social-icons" style="justify-content: {ALIGN_TO_FLEX[socialAlign]}">
+                    {#each socialLinks as social}
+                        <li>
+                            <SocialIconLink
+                                    backgroundColor={socialIconBackground}
+                                    fontColor={socialIconColor}
+                                    link={social.link}
+                                    network={social.network}
+                            />
+                        </li>
+                    {/each}
+                </ul>
+            {/if}
+        </section>
+
+        {#if (displayPhone && hasPhone) || (displayEmail && email) || (displayWeb && websiteLink) || (fileName && fileUrl) || (displayAddress && hasAddress)}
+            <SectionCard
+                    borderColor="rgba(24, 45, 48, 0.14)"
+                    mutedColor={secondaryColor}
+                    textColor={primaryColor}
+                    title="Contact details"
+            >
+                {#if displayPhone && hasPhone}
+                    <ContactListItem
+                            ariaLabel={`Call ${formattedNumber}`}
+                            href={`tel:${telLink}`}
+                            iconBackground={contactIconBackground}
+                            iconColor={contactIconColor}
+                            label="Phone"
+                            value={formattedNumber}
+                    >
+                        <PhoneIcon size="1x"/>
+                    </ContactListItem>
+                {/if}
+
+                {#if displayEmail && email}
+                    <ContactListItem
+                            ariaLabel={`Email ${email}`}
+                            href={`mailto:${email}`}
+                            iconBackground={contactIconBackground}
+                            iconColor={contactIconColor}
+                            label="Email"
+                            value={email}
+                    >
+                        <MailIcon size="1x"/>
+                    </ContactListItem>
+                {/if}
+
+                {#if displayWeb && websiteLink}
+                    <ContactListItem
+                            ariaLabel={`Visit ${website}`}
+                            href={websiteLink}
+                            iconBackground={contactIconBackground}
+                            iconColor={contactIconColor}
+                            label="Website"
+                            target="_blank"
+                            value={website}
+                    >
+                        <GlobeIcon size="1x"/>
+                    </ContactListItem>
+                {/if}
+
+                {#if fileName && fileUrl}
+                    <ContactListItem
+                            ariaLabel={fileName}
+                            href={fileUrl}
+                            iconBackground={contactIconBackground}
+                            iconColor={contactIconColor}
+                            label="File"
+                            target="_blank"
+                            value={fileName}
+                    >
+                        <FileIcon size="1x"/>
+                    </ContactListItem>
+                {/if}
+
+                {#if displayAddress && hasAddress && addressLink}
+                    <ContactListItem
+                            ariaLabel="View address on map"
+                            href={addressLink}
+                            iconBackground={contactIconBackground}
+                            iconColor={contactIconColor}
+                            label="Address"
+                            secondary={[addressLineTwo, country].filter(Boolean).join(' ')}
+                            target="_blank"
+                            value={addressLineOne || [addressLineTwo, country].filter(Boolean).join(' ')}
+                    >
+                        <MapPinIcon size="1x"/>
+                    </ContactListItem>
+                {/if}
+            </SectionCard>
+        {/if}
+
+        {#if displayMap && hasCoordinates}
+            <SectionCard
+                    borderColor="rgba(24, 45, 48, 0.14)"
+                    mutedColor={secondaryColor}
+                    subtitle={timeZone || 'Location preview'}
+                    textColor={primaryColor}
+                    title="Map"
+            >
+                <div class="map-shell">
+                    <Map {latitude} {longitude}/>
+                </div>
+            </SectionCard>
+        {/if}
     </div>
 
-    <div style="padding-top: 30px"></div>
-
-    {#if theme.display.vCardBtn}
-        <div class="{displayMode} p-0" style="z-index: 1000">
+    {#if displayVCardButton}
+        <div class={`vcard-action ${displayMode}`}>
             <VCardButton
-                    className="btn w-100 rounded-0 py-3"
                     {vCard}
-                    backgroundColor={theme.color.vCardBtn.background}
-                    color={theme.color.vCardBtn.font}
+                    backgroundColor={buttonBackground}
+                    color={buttonColor}
             >
                 <UserPlusIcon size="1x"/>
-                {addContactText}
+                <span>{addContactText}</span>
             </VCardButton>
         </div>
     {/if}
-</div>
+</article>
 
 <style lang="scss">
-  a {
-    color: inherit;
-    text-decoration: none;
+  .business-card {
+    color: var(--primary-color);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--background-color) 90%, #fff 10%), var(--background-color));
+    min-height: 100%;
   }
 
-  a:hover {
-    color: inherit;
-    text-decoration: none;
-    cursor: pointer;
+  .card-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+    padding: 1.1rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .logo-row {
+    display: flex;
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
+
+  .brand-logo {
+    object-fit: contain;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .hero-panel {
+    border: 1px solid rgba(24, 45, 48, 0.14);
+    border-radius: 1.15rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(6px);
+  }
+
+  .avatar-row {
+    display: flex;
+    margin-bottom: 0.75rem;
+  }
+
+  .avatar {
+    border-radius: 1.1rem;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.22);
+  }
+
+  .identity-block h1 {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
+  .role-line {
+    margin: 0.35rem 0 0;
+    color: var(--secondary-color);
+    font-weight: 600;
+  }
+
+  .meta-line {
+    margin: 0.28rem 0 0;
+    color: var(--secondary-color);
+    font-size: 0.88rem;
+  }
+
+  .bio {
+    margin: 0.85rem 0 0;
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  .quick-actions {
+    margin-top: 0.95rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .social-icons {
+    list-style: none;
+    margin: 0.95rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.42rem;
+  }
+
+  .map-shell {
+    border-radius: 0.85rem;
+    overflow: hidden;
+    border: 1px solid rgba(24, 45, 48, 0.12);
+  }
+
+  .vcard-action {
+    z-index: 1000;
+    border-top: 1px solid rgba(24, 45, 48, 0.12);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    padding: 0.55rem;
   }
 
   .fixed-bottom-preview {
     position: sticky;
-    bottom: -1px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #fff;
-    box-shadow: 0 -1px 10px rgba(0, 0, 0, 0.1);
+    bottom: 0;
   }
 
   @media (max-width: 500px) {
     .fixed-bottom-prod {
       position: fixed;
-      right: -1px;
+      right: 0;
       bottom: 0;
       left: 0;
-      z-index: 1030;
     }
-  }
 
-  .text-secondary {
-    color: grey !important;
-  }
-
-  ul.social-icons {
-    list-style: none;
-    display: flex;
-  }
-
-  ul.social-icons li {
-    margin-right: 1px;
-  }
-
-  ul.social-icons li:last-child {
-    margin-right: 0;
-  }
-
-  ul {
-    padding-left: 0;
+    .card-stack {
+      padding-bottom: 4.3rem;
+    }
   }
 </style>

@@ -3,54 +3,68 @@
   export let height = '780px';
 </script>
 
-<div id="wrapper">
+<div class="device-shell">
     <div class="phone" style="width: {width}; height: {height};">
+        <div class="camera-bar"></div>
         <slot/>
     </div>
 </div>
 
 <style lang="scss">
-  $border-color: #121212;
-  $shadow-color: #000;
-
   :root {
-    --initial-scale: 1;
+    --preview-scale: 1;
+  }
+
+  .device-shell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .phone {
-    background: #212529;
-    border: 55px solid $border-color;
-    border-width: 55px 7px;
-    border-radius: 40px;
-    margin: 0 auto;
+    position: relative;
     overflow: auto;
-    box-shadow: 0 3px 0 $shadow-color, 0 4px 0 $shadow-color, 0 5px 0 $shadow-color,
-    0 7px 0 $shadow-color, 0 10px 20px $shadow-color;
-    transform: scale(var(--initial-scale));
-    transition: transform 0.3s ease-out;
+    border-radius: 2.4rem;
+    background: #0f1f24;
+    border: 8px solid #111827;
+    box-shadow: 0 24px 45px rgba(2, 6, 23, 0.35);
+    transform: scale(var(--preview-scale));
+    transform-origin: center;
+    transition: transform 200ms ease-out;
   }
 
-  @media (max-width: 1400px) {
+  .camera-bar {
+    position: sticky;
+    top: 0.6rem;
+    z-index: 2;
+    width: 5.2rem;
+    height: 0.35rem;
+    border-radius: 999px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  @media (max-width: 1460px) {
     :root {
-      --initial-scale: 0.9;
+      --preview-scale: 0.9;
     }
   }
 
-  @media (max-width: 1300px) {
+  @media (max-width: 1360px) {
     :root {
-      --initial-scale: 0.8;
+      --preview-scale: 0.82;
     }
   }
 
-  @media (max-width: 1200px) {
+  @media (max-width: 1240px) {
     :root {
-      --initial-scale: 0.7;
+      --preview-scale: 0.74;
     }
   }
 
-  @media (max-width: 1030px) {
+  @media (max-width: 1120px) {
     :root {
-      --initial-scale: 0.6;
+      --preview-scale: 0.68;
     }
   }
 </style>

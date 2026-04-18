@@ -64,8 +64,8 @@
 
 <AdminMain>
     <Heading border="true" size="h2" tag="h1">Edit vCard</Heading>
-    <div class="row">
-        <div class="col-lg-8">
+    <div class="row g-4">
+        <div class="col-12 col-xl-8">
             <form action="?/save{userId ? `&userId=${userId}` : ''}" method="POST" use:enhance={save}>
                 <TextInput bind:value={vCard.person.firstName} displayName="First Name"
                            name="firstName"></TextInput>
@@ -158,6 +158,8 @@
             <UploadFile bind:file="{avatarPreview}" imageHeight="130" imageName="avatar" targetUserId={vCard.userId}/>
         </div>
 
-        <DisplayPreview {avatarPreview} {theme} {vCard}/>
+        <div class="col-xl-4 d-none d-xl-block">
+            <DisplayPreview {avatarPreview} {theme} {vCard}/>
+        </div>
     </div>
 </AdminMain>

@@ -1,24 +1,37 @@
-<div class="container p-0 pb-5">
-    <div class="overflow-hidden shadow-custom rounded-custom">
+<div class="production-shell">
+    <div class="production-card">
         <slot/>
     </div>
 </div>
 
 <style lang="scss">
-  @media (min-width: 500px) {
-    .container {
-      max-width: 500px;
-      padding-top: 50px !important;
+  .production-shell {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 1.6rem 1rem 2.6rem;
+  }
+
+  .production-card {
+    width: min(100%, 540px);
+    border-radius: 1.2rem;
+    overflow: hidden;
+    box-shadow: 0 24px 55px rgba(15, 23, 42, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+  }
+
+  @media (max-width: 500px) {
+    .production-shell {
+      padding: 0;
     }
 
-    .rounded-custom {
-      border-radius: 0.5rem;
-    }
-
-    .shadow-custom {
-      padding-top-webkit-box-shadow: 8px 10px 11px -4px rgba(0, 0, 0, 0.71);
-      -moz-box-shadow: 8px 10px 11px -4px rgba(0, 0, 0, 0.71);
-      box-shadow: 8px 10px 11px -4px rgba(0, 0, 0, 0.71);
+    .production-card {
+      width: 100%;
+      min-height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
+      border: none;
     }
   }
 </style>
